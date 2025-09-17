@@ -31,7 +31,7 @@ public class GlobalMouseExample {
 	private static boolean run = true;
 	public static void main(String[] args) {
 		// might throw a UnsatisfiedLinkError if the native library fails to load or a RuntimeException if hooking fails 
-		GlobalMouseHook mouseHook = new GlobalMouseHook(); // add true to the constructor, to switch to raw input mode
+		GlobalMouseHook mouseHook = new GlobalMouseHook(false); // add true to the constructor, to switch to raw input mode
 
 		System.out.println("Global mouse hook successfully started, press [middle] mouse button to shutdown. Connected mice:");
 		for(Entry<Long,String> mouse:GlobalMouseHook.listMice().entrySet())

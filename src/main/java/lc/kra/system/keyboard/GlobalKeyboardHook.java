@@ -21,6 +21,21 @@
  */
 package lc.kra.system.keyboard;
 
+import lc.kra.system.GlobalHookMode;
+import lc.kra.system.LibraryLoader;
+import lc.kra.system.keyboard.event.GlobalKeyEvent;
+import lc.kra.system.keyboard.event.GlobalKeyListener;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 import static lc.kra.system.GlobalHookMode.DEFAULT;
 import static lc.kra.system.GlobalHookMode.RAW;
 import static lc.kra.system.keyboard.event.GlobalKeyEvent.TS_DOWN;
@@ -36,49 +51,18 @@ import static lc.kra.system.keyboard.event.GlobalKeyEvent.VK_RSHIFT;
 import static lc.kra.system.keyboard.event.GlobalKeyEvent.VK_RWIN;
 import static lc.kra.system.keyboard.event.GlobalKeyEvent.VK_SHIFT;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.LinkedBlockingQueue;
-
-import lc.kra.system.GlobalHookMode;
-import lc.kra.system.LibraryLoader;
-import lc.kra.system.keyboard.event.GlobalKeyEvent;
-import lc.kra.system.keyboard.event.GlobalKeyListener;
-
 public class GlobalKeyboardHook {
 	private static final int STATUS_SUCCESS = 0;
 	
-	private NativeKeyboardHook keyboardHook;
-	
-	private BlockingQueue<GlobalKeyEvent> inputBuffer =
-		new LinkedBlockingQueue<GlobalKeyEvent>();
+	private final NativeKeyboardHook keyboardHook;
+
+	private final ExecutorService executor;
+
+	private final List<GlobalKeyListener> listeners = new CopyOnWriteArrayList<GlobalKeyListener>();
+
 	private boolean menuPressed, shiftPressed, controlPressed, winPressed, extendedKey;
-	
-	private List<GlobalKeyListener> listeners = new CopyOnWriteArrayList<GlobalKeyListener>();
-	
-	private Set<Integer> heldDownKeyCodes = new HashSet<Integer>();
-	
-	private Thread eventDispatcher = new Thread() {{
-			setName("Global Keyboard Hook Dispatcher");
-			setDaemon(true);
-		}
-		
-		public void run() {
-			try {
-				// while the global keyboard hook is alive, try to take events and dispatch them
-				while(GlobalKeyboardHook.this.isAlive()) {
-					GlobalKeyEvent event = inputBuffer.take();
-					if(event.getTransitionState()==TS_DOWN)
-					     keyPressed(event);
-					else keyReleased(event);
-				}
-			} catch(InterruptedException e) { /* thread got interrupted, break */ }
-		}
-	};
+
+	private final Set<Integer> heldDownKeyCodes = new HashSet<Integer>();
 
 	/**
 	 * Instantiate a new GlobalKeyboardHook.
@@ -116,20 +100,33 @@ public class GlobalKeyboardHook {
 	 */
 	public GlobalKeyboardHook(GlobalHookMode mode) throws UnsatisfiedLinkError {
 		LibraryLoader.loadLibrary(); // load the library, in case it's not already loaded
-		
+
+		executor = Executors.newSingleThreadExecutor();
+
 		// register a keyboard hook (throws a RuntimeException in case something goes wrong)
 		keyboardHook = new NativeKeyboardHook(mode) {
 			/**
 			 * Handle the input virtualKeyCode and transitionState, create event and add it to the inputBuffer
 			 */
-			@Override public void handleKey(int virtualKeyCode, int transitionState, char keyChar, long deviceHandle) {
+			@Override public int handleKey(int virtualKeyCode, int transitionState, char keyChar, long deviceHandle) {
 				switchControlKeys(virtualKeyCode, transitionState);
-				inputBuffer.add(new GlobalKeyEvent(this, virtualKeyCode, transitionState, keyChar, menuPressed, shiftPressed, controlPressed, winPressed, extendedKey, deviceHandle));			
+				GlobalKeyEvent event = new GlobalKeyEvent(
+					this,
+					virtualKeyCode,
+					transitionState,
+					keyChar,
+					menuPressed,
+					shiftPressed,
+					controlPressed,
+					winPressed,
+					extendedKey,
+					deviceHandle
+				);
+
+				return handleKeyEvent(event);
 			}
 		};
-		
-		// start the event dispatcher after a successful hook
-		eventDispatcher.start();
+
 	}
 
 	/**
@@ -145,16 +142,33 @@ public class GlobalKeyboardHook {
 	 */
 	public void removeKeyListener(GlobalKeyListener listener) { listeners.remove(listener); }
 
+	private int handleKeyEvent(final GlobalKeyEvent event) {
+		try {
+			return executor.submit(new Callable<Integer>() {
+				@Override
+				public Integer call() {
+					return event.getTransitionState() == TS_DOWN ? keyPressed(event) : keyReleased(event);
+				}
+			}).get();
+		} catch (ExecutionException ex) {
+			return 0;
+		}catch (InterruptedException ex) {
+			return 0;
+		}
+	}
 	/**
 	 * Invoke keyPressed (transition state TS_DOWN) for all registered listeners
 	 * 
 	 * @param event a global key event
 	 */
-	private void keyPressed(GlobalKeyEvent event) {
+	private int keyPressed(GlobalKeyEvent event) {
 		heldDownKeyCodes.add(event.getVirtualKeyCode());
-		
-		for(GlobalKeyListener listener:listeners)
-			listener.keyPressed(event);
+
+		boolean stop = false;
+		for(GlobalKeyListener listener:listeners) {
+			stop |= listener.keyPressed(event);
+		}
+		return stop ? 1 : 0;
 	}
 	
 	/**
@@ -162,11 +176,14 @@ public class GlobalKeyboardHook {
 	 * 
 	 * @param event a global key event
 	 */
-	private void keyReleased(GlobalKeyEvent event) {
+	private int keyReleased(GlobalKeyEvent event) {
 		heldDownKeyCodes.remove(event.getVirtualKeyCode());
-		
-		for(GlobalKeyListener listener:listeners)
-			listener.keyReleased(event);
+
+		boolean stop = false;
+		for(GlobalKeyListener listener:listeners) {
+			stop |= listener.keyReleased(event);
+		}
+		return stop ? 1 : 0;
 	}
 
 	/**
@@ -215,6 +232,10 @@ public class GlobalKeyboardHook {
 			catch(InterruptedException e) {
 				throw new RuntimeException(e);
 			}
+
+		}
+		if(!executor.isShutdown()) {
+			executor.shutdown();
 		}
 	}
 	
@@ -258,7 +279,7 @@ public class GlobalKeyboardHook {
 		
 		public static native final Map<Long,String> listDevices();
 		
-		public abstract void handleKey(int virtualKeyCode, int transitionState, char keyChar, long deviceHandle);
+		public abstract int handleKey(int virtualKeyCode, int transitionState, char keyChar, long deviceHandle);
 	}
 	
 	/**

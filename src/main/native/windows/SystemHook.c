@@ -82,7 +82,7 @@ BOOL APIENTRY DllMain(HINSTANCE _hInst, DWORD reason, LPVOID reserved) {
 	return TRUE;
 }
 
-static void handleKey(const char *nProc, UINT event, USHORT vkCode, USHORT scanCode, HANDLE hDevice) {
+static int handleKey(const char *nProc, UINT event, USHORT vkCode, USHORT scanCode, HANDLE hDevice) {
 	// As ToUnicode/ToAscii is messing up dead keys (e.g. ^, `, ...), we have to check the MSB of the MapVirtualKey return value first.
 	// (see Stack Overflow at http://stackoverflow.com/questions/1964614/toascii-tounicode-in-a-keyboard-hook-destroys-dead-keys)
 	if(!(MapVirtualKey(vkCode, MAPVK_VK_TO_CHAR)>>(sizeof(UINT)*8-1) & 1)) {
@@ -100,19 +100,23 @@ static void handleKey(const char *nProc, UINT event, USHORT vkCode, USHORT scanC
 			/* no break */
 		case WM_KEYUP: case WM_SYSKEYUP: {
 			JNIEnv* env;
-			if((*jvm)->AttachCurrentThread(jvm, (void**)&env, NULL)>=JNI_OK)
-				(*env)->CallVoidMethod(env, hookObj[HOOK_KEYBOARD], handleMeth[HOOK_KEYBOARD], vkCode, tState, (jchar)buffer[0], (jlong)(uintptr_t)hDevice);
-			else DEBUG_PRINT(("NATIVE: %s - Error on the attach current thread.\n", nProc));
+			if((*jvm)->AttachCurrentThread(jvm, (void**)&env, NULL)>=JNI_OK) {
+				return (*env)->CallIntMethod(env, hookObj[HOOK_KEYBOARD], handleMeth[HOOK_KEYBOARD], vkCode, tState, (jchar)buffer[0], (jlong)(uintptr_t)hDevice);
+			} else {
+			    DEBUG_PRINT(("NATIVE: %s - Error on the attach current thread.\n", nProc));
+			    return 0;
+			}
 		}
 	}
+	return 0;
 }
 
 LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)  {
 	KBDLLHOOKSTRUCT* pStruct = (KBDLLHOOKSTRUCT*)lParam;
 
-	handleKey("LowLevelKeyboardProc", wParam, pStruct->vkCode, pStruct->scanCode, 0);
+	int stop = handleKey("LowLevelKeyboardProc", wParam, pStruct->vkCode, pStruct->scanCode, 0);
 
-	return nCode<0 || lMode != MODE_FINAL ? CallNextHookEx(NULL, nCode, wParam, lParam) : -1;
+	return (stop == 0) && (nCode<0 || lMode != MODE_FINAL) ? CallNextHookEx(NULL, nCode, wParam, lParam) : -1;
 }
 LRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam)  {
 	if(nCode==HC_ACTION) {
@@ -152,14 +156,14 @@ LRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam)  {
 				case WM_MOUSEMOVE:
 					tState = (jint)TS_MOVE;
 					if(lPosX!=lOldX||lOldX!=lOldY)
-						(*env)->CallVoidMethod(env, hookObj[HOOK_MOUSE], handleMeth[HOOK_MOUSE], tState, (jint)0, /*(jint)wParam,*/lOldX=lPosX, lOldY=lPosY, (jint)0);
+						(*env)->CallIntMethod(env, hookObj[HOOK_MOUSE], handleMeth[HOOK_MOUSE], tState, (jint)0, /*(jint)wParam,*/lOldX=lPosX, lOldY=lPosY, (jint)0);
 					break;
 				case WM_MOUSEWHEEL:
-					(*env)->CallVoidMethod(env, hookObj[HOOK_MOUSE], handleMeth[HOOK_MOUSE], tState=TS_WHEEL, (jint)0, /*(jint)GET_KEYSTATE_WPARAM(wParam),*/lPosX, lPosY, (jint)GET_WHEEL_DELTA_WPARAM(pStruct->mouseData));
+					(*env)->CallIntMethod(env, hookObj[HOOK_MOUSE], handleMeth[HOOK_MOUSE], tState=TS_WHEEL, (jint)0, /*(jint)GET_KEYSTATE_WPARAM(wParam),*/lPosX, lPosY, (jint)GET_WHEEL_DELTA_WPARAM(pStruct->mouseData));
 					break;
 			}
 			if(tState<=TS_DOWN&&mkButton!=0) //tState==TS_DOWN||tState==TS_UP
-				(*env)->CallVoidMethod(env, hookObj[HOOK_MOUSE], handleMeth[HOOK_MOUSE], tState, mkButton, /*(jint)wParam,*/lPosX, lPosY, (jint)0);
+				(*env)->CallIntMethod(env, hookObj[HOOK_MOUSE], handleMeth[HOOK_MOUSE], tState, mkButton, /*(jint)wParam,*/lPosX, lPosY, (jint)0);
 		} else DEBUG_PRINT(("NATIVE: LowLevelMouseProc - Error on the attach current thread.\n"));
 	}
 
@@ -250,15 +254,15 @@ LRESULT CALLBACK WndProc(HWND hWndMain, UINT uMsg, WPARAM wParam, LPARAM lParam)
 								tState = (jint)TS_DOWN;
 						}
 						// handle mouse buttons
-						if(mkButton!=0) (*env)->CallVoidMethod(env, hookObj[HOOK_MOUSE], handleMeth[HOOK_MOUSE],
+						if(mkButton!=0) (*env)->CallIntMethod(env, hookObj[HOOK_MOUSE], handleMeth[HOOK_MOUSE],
 							tState, mkButton, lLastX, lLastY, (jint)0, (jlong)(uintptr_t)hDevice);
 
 						// handle mouse move
-						if(lLastX!=0||lLastY!=0) (*env)->CallVoidMethod(env, hookObj[HOOK_MOUSE], handleMeth[HOOK_MOUSE],
+						if(lLastX!=0||lLastY!=0) (*env)->CallIntMethod(env, hookObj[HOOK_MOUSE], handleMeth[HOOK_MOUSE],
 							(jint)TS_MOVE, (jint)0, lLastX, lLastY, (jint)0, (jlong)(uintptr_t)hDevice);
 
 						// handle mouse wheel
-						if((buttonFlags&RI_MOUSE_WHEEL)==RI_MOUSE_WHEEL) (*env)->CallVoidMethod(env, hookObj[HOOK_MOUSE], handleMeth[HOOK_MOUSE],
+						if((buttonFlags&RI_MOUSE_WHEEL)==RI_MOUSE_WHEEL) (*env)->CallIntMethod(env, hookObj[HOOK_MOUSE], handleMeth[HOOK_MOUSE],
 							(jint)TS_WHEEL, (jint)0, lLastX, lLastY, (jint)((short)buttonData), (jlong)(uintptr_t)hDevice);
 					} else DEBUG_PRINT(("NATIVE: LowLevelMouseProc - Error on the attach current thread.\n"));
 
@@ -370,10 +374,10 @@ static inline jint registerHook(JNIEnv *env, jobject thisObj, size_t hook, const
 	}
 }
 JNIEXPORT jint JNICALL Java_lc_kra_system_keyboard_GlobalKeyboardHook_00024NativeKeyboardHook_registerHook(JNIEnv *env, jobject thisObj, jint mode) {
-	return registerHook(env, thisObj, HOOK_KEYBOARD, "handleKey", "(IICJ)V", mode);
+	return registerHook(env, thisObj, HOOK_KEYBOARD, "handleKey", "(IICJ)I", mode);
 }
 JNIEXPORT jint JNICALL Java_lc_kra_system_mouse_GlobalMouseHook_00024NativeMouseHook_registerHook(JNIEnv *env, jobject thisObj, jint mode) {
-	return registerHook(env, thisObj, HOOK_MOUSE, "handleMouse", "(IIIIIJ)V", mode);
+	return registerHook(env, thisObj, HOOK_MOUSE, "handleMouse", "(IIIIIJ)I", mode);
 }
 
 static inline void unregisterHook(size_t hook) {

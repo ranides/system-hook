@@ -28,13 +28,15 @@ public interface GlobalKeyListener extends EventListener {
      * Invoked when a key has been pressed.
      * 
      * @param event a global key event
+     * @return true if event should be supressed
      */
-	public void keyPressed(GlobalKeyEvent event);
+	public boolean keyPressed(GlobalKeyEvent event);
 	
     /**
      * Invoked when a key has been released.
      * 
      * @param event a global key event
+     * @return true if event should be suppressed
      */
-	public void keyReleased(GlobalKeyEvent event);
+	public boolean keyReleased(GlobalKeyEvent event);
 }

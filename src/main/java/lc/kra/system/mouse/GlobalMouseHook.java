@@ -121,8 +121,9 @@ public class GlobalMouseHook {
 			/**
 			 * Handle the input transitionState create event and add it to the inputBuffer
 			 */
-			@Override public void handleMouse(int transitionState, int button, int x, int y, int delta, long deviceHandle) {
-				inputBuffer.add(new GlobalMouseEvent(this, transitionState, button, buttons^=button, x, y, delta, deviceHandle));			
+			@Override public int handleMouse(int transitionState, int button, int x, int y, int delta, long deviceHandle) {
+				inputBuffer.add(new GlobalMouseEvent(this, transitionState, button, buttons^=button, x, y, delta, deviceHandle));
+				return 0;
 			}
 		};
 		
@@ -241,6 +242,6 @@ public class GlobalMouseHook {
 		
 		public static native final Map<Long,String> listDevices();
 		
-		public abstract void handleMouse(int transitionState, int button, int x, int y, int delta, long deviceHandle);
+		public abstract int handleMouse(int transitionState, int button, int x, int y, int delta, long deviceHandle);
 	}
 }

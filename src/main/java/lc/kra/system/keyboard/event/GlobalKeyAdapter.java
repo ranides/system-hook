@@ -25,10 +25,14 @@ public class GlobalKeyAdapter implements GlobalKeyListener {
     /**
      * @see GlobalKeyListener#keyPressed(GlobalKeyEvent)
      */
-	@Override public void keyPressed(GlobalKeyEvent event) {}
+	@Override public boolean keyPressed(GlobalKeyEvent event) {
+        return false;
+    }
 	
     /**
      * @see GlobalKeyListener#keyReleased(GlobalKeyEvent)
      */
-	@Override public void keyReleased(GlobalKeyEvent event) {}
+	@Override public boolean keyReleased(GlobalKeyEvent event) {
+        return false;
+    }
 }
