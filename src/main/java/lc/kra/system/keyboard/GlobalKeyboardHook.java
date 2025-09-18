@@ -115,11 +115,7 @@ public class GlobalKeyboardHook {
 					virtualKeyCode,
 					transitionState,
 					keyChar,
-					menuPressed,
-					shiftPressed,
-					controlPressed,
-					winPressed,
-					extendedKey,
+					heldDownKeyCodes,
 					deviceHandle
 				);
 
@@ -288,20 +284,27 @@ public class GlobalKeyboardHook {
 	private void switchControlKeys(int virtualKeyCode, int transitionState) {
 		boolean downTransition = (transitionState==TS_DOWN);
 		switch(virtualKeyCode) {
-		case VK_RWIN: extendedKey = downTransition; 
+		case VK_RWIN:
+			extendedKey = downTransition;
 		case VK_LWIN: 
 			winPressed = downTransition;
 			break;
-		case VK_RMENU: extendedKey = downTransition;
-		case VK_MENU: case VK_LMENU:
+		case VK_RMENU:
+			extendedKey = downTransition;
+		case VK_MENU:
+		case VK_LMENU:
 			menuPressed = downTransition;
 			break;
-		case VK_RSHIFT: extendedKey = downTransition;
-		case VK_SHIFT: case VK_LSHIFT:
+		case VK_RSHIFT:
+			extendedKey = downTransition;
+		case VK_SHIFT:
+		case VK_LSHIFT:
 			shiftPressed = downTransition;
 			break;
-		case VK_RCONTROL: extendedKey = downTransition;
-		case VK_CONTROL: case VK_LCONTROL:
+		case VK_RCONTROL:
+			extendedKey = downTransition;
+		case VK_CONTROL:
+		case VK_LCONTROL:
 			controlPressed = downTransition;
 			break;
 		}
