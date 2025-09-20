@@ -44,7 +44,7 @@ public class GlobalKeyboardExample {
         keyboardHook.addKeyListener(new GlobalKeyAdapter() {
             @Override
             public boolean keyPressed(GlobalKeyEvent event) {
-                System.out.println(event);
+                System.out.println(event + " " + event.toSimpleKey());
                 if (event.getVirtualKeyCode() == GlobalKeyEvent.VK_ESCAPE) {
                     run.set(false);
                 }
@@ -56,7 +56,7 @@ public class GlobalKeyboardExample {
 
             @Override
             public boolean keyReleased(GlobalKeyEvent event) {
-                System.out.println(event);
+                System.out.println(event + " " + event.toSimpleKey());
                 if("qwertyuiop".indexOf(event.getKeyChar()) != -1) {
                     return true;
                 }

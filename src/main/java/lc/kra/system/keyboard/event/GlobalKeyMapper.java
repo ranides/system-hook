@@ -8,23 +8,29 @@ public class GlobalKeyMapper {
         // utility class
     }
 
-    public static String codeToString(int code) {
-        switch (code) {
+    public static String toSimpleKey(GlobalKeyEvent event) {
+        switch (event.getVirtualKeyCode()) {
+            case VK_SHIFT   :
+            case VK_LSHIFT  :
+            case VK_RSHIFT  : return "Shift";
+
+            case VK_CONTROL :
+            case VK_LCONTROL:
+            case VK_RCONTROL: return "Ctrl";
+
+            case VK_MENU    :
+            case VK_LMENU   :
+            case VK_RMENU   : return "Alt";
+
             case VK_BACK    : return "BkSpace";
             case VK_TAB     : return "Tab";
             case VK_CLEAR   : return "Clear";
             case VK_RETURN  : return "Enter";
-            case VK_SHIFT   : return "Shift";
-            case VK_CONTROL : return "Ctrl";
-            case VK_MENU    : return "Alt";
             case VK_PAUSE   : return "Pause";
             case VK_CAPITAL : return "Caps Lock";
-//            case VK_KANA    : return "IME Kana";
-//            case VK_HANGUEL : return "IME Hanguel";
             case VK_HANGUL  : return "IME Hangul";
             case VK_JUNJA   : return "IME Junja";
             case VK_FINAL   : return "IME Final";
-//            case VK_HANJA   : return "IME Hanja";
             case VK_KANJI   : return "IME Kanji";
             case VK_ESCAPE  : return "Esc";
             case VK_CONVERT : return "IME convert";
@@ -97,12 +103,12 @@ public class GlobalKeyMapper {
             case VK_NUMPAD7 : return "Num7";
             case VK_NUMPAD8 : return "Num8";
             case VK_NUMPAD9 : return "Num9";
-            case VK_MULTIPLY: return "NumMul";
-            case VK_ADD     : return "NumAdd";
-            case VK_SEPARATOR: return "NumSeparator";
-            case VK_SUBTRACT: return "NumSub";
-            case VK_DECIMAL : return "NumDecimal";
-            case VK_DIVIDE  : return "NumDiv";
+            case VK_MULTIPLY: return "Num*";
+            case VK_ADD     : return "Num+";
+            case VK_SEPARATOR: return "Num,";
+            case VK_SUBTRACT: return "Num-";
+            case VK_DECIMAL : return "Num.";
+            case VK_DIVIDE  : return "Num/";
             case VK_F1  : return "F1";
             case VK_F2  : return "F2";
             case VK_F3  : return "F3";
@@ -129,12 +135,6 @@ public class GlobalKeyMapper {
             case VK_F24 : return "F24";
             case VK_NUMLOCK: return "Num Lock";
             case VK_SCROLL: return "Scroll Lock";
-            case VK_LSHIFT: return "LShift";
-            case VK_RSHIFT: return "RShift";
-            case VK_LCONTROL: return "LCtrl";
-            case VK_RCONTROL: return "RCtrl";
-            case VK_LMENU: return "LAlt";
-            case VK_RMENU: return "RAlt";
             case VK_BROWSER_BACK: return "Browser Back";
             case VK_BROWSER_FORWARD : return "Browser Forward";
             case VK_BROWSER_REFRESH: return "Browser Refresh";
@@ -153,19 +153,22 @@ public class GlobalKeyMapper {
             case VK_LAUNCH_MEDIA_SELECT : return "Media Select";
             case VK_LAUNCH_APP1: return "Start Application 1";
             case VK_LAUNCH_APP2 : return "Start Application 2";
-            case VK_OEM_1 : return "OEM 1";
             case VK_OEM_PLUS : return "OEM +";
             case VK_OEM_COMMA : return "OEM ,";
             case VK_OEM_MINUS : return "OEM -";
             case VK_OEM_PERIOD : return "OEM .";
-            case VK_OEM_2 : return "OEM /";
-            case VK_OEM_3 : return "OEM 3";
-            case VK_OEM_4 : return "OEM 4";
-            case VK_OEM_5 : return "OEM 5";
-            case VK_OEM_6 : return "OEM 6";
-            case VK_OEM_7 : return "OEM 7";
-            case VK_OEM_8 : return "OEM 8";
+
+            case VK_OEM_1 :
+            case VK_OEM_2 :
+            case VK_OEM_3 :
+            case VK_OEM_4 :
+            case VK_OEM_5 :
+            case VK_OEM_6 :
+            case VK_OEM_7 :
+            case VK_OEM_8 : return "OEM " + event.getKeyChar();
+
             case VK_OEM_102 : return "OEM 102";
+
             case VK_PROCESSKEY : return "IME Process";
             case VK_PACKET : return "Unicode";
             case VK_ATTN : return "ATTN";
@@ -177,8 +180,23 @@ public class GlobalKeyMapper {
             case VK_NONAME : return "Reserved";
             case VK_PA1 : return "PA1";
             case VK_OEM_CLEAR : return "OEM Clear";
+            default: return "?";
         }
-        return "?";
+    }
+
+    public static String toExtendedKey(GlobalKeyEvent event) {
+        switch (event.getVirtualKeyCode()) {
+            case VK_SHIFT   : return "Shift";
+            case VK_CONTROL : return "Ctrl";
+            case VK_MENU    : return "Alt";
+            case VK_LSHIFT: return "LShift";
+            case VK_RSHIFT: return "RShift";
+            case VK_LCONTROL: return "LCtrl";
+            case VK_RCONTROL: return "RCtrl";
+            case VK_LMENU: return "LAlt";
+            case VK_RMENU: return "RAlt";
+            default: return toSimpleKey(event);
+        }
     }
 
 }

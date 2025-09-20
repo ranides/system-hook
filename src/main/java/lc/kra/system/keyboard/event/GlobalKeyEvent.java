@@ -342,7 +342,7 @@ public class GlobalKeyEvent extends EventObject {
         if(isWinPressed() && (virtualKeyCode!=VK_LWIN && virtualKeyCode!=VK_RWIN)) {
             builder.append("Win+");
         }
-        builder.append(GlobalKeyMapper.codeToString(getVirtualKeyCode()));
+        builder.append(GlobalKeyMapper.toSimpleKey(this));
         return builder.toString();
     }
 
@@ -376,9 +376,8 @@ public class GlobalKeyEvent extends EventObject {
         if(pressed.contains(VK_RWIN) && (virtualKeyCode!=VK_RWIN)) {
             builder.append("RWin+");
         }
-        builder.append(GlobalKeyMapper.codeToString(getVirtualKeyCode()));
+        builder.append(GlobalKeyMapper.toExtendedKey(this));
         return builder.toString();
     }
-
 
 }
