@@ -30,9 +30,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -59,8 +57,6 @@ public class GlobalKeyboardHook {
 	private final ExecutorService executor;
 
 	private final List<GlobalKeyListener> listeners = new CopyOnWriteArrayList<GlobalKeyListener>();
-
-	private boolean menuPressed, shiftPressed, controlPressed, winPressed, extendedKey;
 
 	private final Set<Integer> heldDownKeyCodes = new HashSet<Integer>();
 
@@ -109,7 +105,6 @@ public class GlobalKeyboardHook {
 			 * Handle the input virtualKeyCode and transitionState, create event and add it to the inputBuffer
 			 */
 			@Override public int handleKey(int virtualKeyCode, int transitionState, char keyChar, long deviceHandle) {
-				switchControlKeys(virtualKeyCode, transitionState);
 				GlobalKeyEvent event = new GlobalKeyEvent(
 					this,
 					virtualKeyCode,
@@ -119,7 +114,12 @@ public class GlobalKeyboardHook {
 					deviceHandle
 				);
 
-				return handleKeyEvent(event);
+				if(transitionState == TS_DOWN) {
+					keyPressed(event);
+				} else {
+					keyReleased(event);
+				}
+				return keyCapture(event);
 			}
 		};
 
@@ -138,46 +138,46 @@ public class GlobalKeyboardHook {
 	 */
 	public void removeKeyListener(GlobalKeyListener listener) { listeners.remove(listener); }
 
-	private int handleKeyEvent(final GlobalKeyEvent event) {
-		try {
-			return executor.submit(new Callable<Integer>() {
-				@Override
-				public Integer call() {
-					return event.getTransitionState() == TS_DOWN ? keyPressed(event) : keyReleased(event);
-				}
-			}).get();
-		} catch (ExecutionException ex) {
-			return 0;
-		}catch (InterruptedException ex) {
-			return 0;
-		}
-	}
 	/**
 	 * Invoke keyPressed (transition state TS_DOWN) for all registered listeners
 	 * 
 	 * @param event a global key event
 	 */
-	private int keyPressed(GlobalKeyEvent event) {
+	private void keyPressed(final GlobalKeyEvent event) {
 		heldDownKeyCodes.add(event.getVirtualKeyCode());
 
-		boolean stop = false;
-		for(GlobalKeyListener listener:listeners) {
-			stop |= listener.keyPressed(event);
-		}
-		return stop ? 1 : 0;
+		executor.submit(new Runnable() {
+			@Override
+			public void run() {
+				for(GlobalKeyListener listener:listeners) {
+					listener.keyPressed(event);
+				}
+			}
+		});
 	}
-	
+
 	/**
 	 * Invoke keyReleased (transition state TS_UP) for all registered listeners
-	 * 
+	 *
 	 * @param event a global key event
 	 */
-	private int keyReleased(GlobalKeyEvent event) {
+	private void keyReleased(final GlobalKeyEvent event) {
 		heldDownKeyCodes.remove(event.getVirtualKeyCode());
 
+		executor.submit(new Runnable() {
+			@Override
+			public void run() {
+				for(GlobalKeyListener listener:listeners) {
+					listener.keyReleased(event);
+				}
+			}
+		});
+	}
+
+	private int keyCapture(GlobalKeyEvent event) {
 		boolean stop = false;
-		for(GlobalKeyListener listener:listeners) {
-			stop |= listener.keyReleased(event);
+		for(GlobalKeyListener listener : listeners) {
+			stop |= listener.keyCapture(event);
 		}
 		return stop ? 1 : 0;
 	}
@@ -278,35 +278,5 @@ public class GlobalKeyboardHook {
 		public abstract int handleKey(int virtualKeyCode, int transitionState, char keyChar, long deviceHandle);
 	}
 	
-	/**
-	 * Switch control states for menu/shift/control
-	 */
-	private void switchControlKeys(int virtualKeyCode, int transitionState) {
-		boolean downTransition = (transitionState==TS_DOWN);
-		switch(virtualKeyCode) {
-		case VK_RWIN:
-			extendedKey = downTransition;
-		case VK_LWIN: 
-			winPressed = downTransition;
-			break;
-		case VK_RMENU:
-			extendedKey = downTransition;
-		case VK_MENU:
-		case VK_LMENU:
-			menuPressed = downTransition;
-			break;
-		case VK_RSHIFT:
-			extendedKey = downTransition;
-		case VK_SHIFT:
-		case VK_LSHIFT:
-			shiftPressed = downTransition;
-			break;
-		case VK_RCONTROL:
-			extendedKey = downTransition;
-		case VK_CONTROL:
-		case VK_LCONTROL:
-			controlPressed = downTransition;
-			break;
-		}
-	}
+
 }

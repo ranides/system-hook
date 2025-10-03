@@ -34,8 +34,7 @@ public class GlobalKeyboardExample {
     public static void main(String[] args) {
         GlobalKeyboardHook keyboardHook = new GlobalKeyboardHook(false); // use false here to switch to hook instead of raw input
 
-        System.out.println(
-            "Global keyboard hook successfully started, press [escape] key to shutdown. Connected keyboards:");
+        System.out.println("Global keyboard hook successfully started, press [escape] key to shutdown. Connected keyboards:");
 
         for (Entry<Long, String> keyboard : GlobalKeyboardHook.listKeyboards().entrySet()) {
             System.out.format("%d: %s\n", keyboard.getKey(), keyboard.getValue());
@@ -43,24 +42,23 @@ public class GlobalKeyboardExample {
 
         keyboardHook.addKeyListener(new GlobalKeyAdapter() {
             @Override
-            public boolean keyPressed(GlobalKeyEvent event) {
+            public void keyPressed(GlobalKeyEvent event) {
                 System.out.println(event + " " + event.toSimpleKey());
                 if (event.getVirtualKeyCode() == GlobalKeyEvent.VK_ESCAPE) {
                     run.set(false);
                 }
-                if("qwertyuiop".indexOf(event.getKeyChar()) != -1) {
-                    return true;
-                }
-                return false;
             }
 
             @Override
-            public boolean keyReleased(GlobalKeyEvent event) {
+            public void keyReleased(GlobalKeyEvent event) {
                 System.out.println(event + " " + event.toSimpleKey());
+            }
+
+            @Override
+            public boolean keyCapture(GlobalKeyEvent event) {
                 if("qwertyuiop".indexOf(event.getKeyChar()) != -1) {
                     return true;
                 }
-
                 return false;
             }
         });
