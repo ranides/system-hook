@@ -28,6 +28,8 @@ import java.util.Set;
 public class GlobalKeyEvent extends EventObject {
     private static final long serialVersionUID = -8194688548489965445L;
 
+    private static final GlobalKeyTrace NO_TRACE = new GlobalKeyTrace(0);
+
     /**
      * Key transition states (up / down)
      */
@@ -284,6 +286,36 @@ public class GlobalKeyEvent extends EventObject {
         return pressed.contains(VK_LWIN) || pressed.contains(VK_RWIN);
     }
 
+    //
+
+    /**
+     * @return true if the menu key (alt) is pressed on the keyboard.
+     */
+    public boolean isVirtualCodeMenu() {
+        return virtualKeyCode == VK_MENU || virtualKeyCode == VK_LMENU || virtualKeyCode == VK_RMENU;
+    }
+
+    /**
+     * @return true if the shift key is pressed on the keyboard.
+     */
+    public boolean isVirtualCodeShift() {
+        return virtualKeyCode == VK_SHIFT || virtualKeyCode == VK_LSHIFT || virtualKeyCode == VK_RSHIFT;
+    }
+
+    /**
+     * @return true if the control key is pressed on the keyboard.
+     */
+    public boolean isVirtualCodeControl() {
+        return virtualKeyCode == VK_CONTROL || virtualKeyCode == VK_LCONTROL || virtualKeyCode == VK_RCONTROL;
+    }
+
+    /**
+     * @return true if the windows key is pressed on the keyboard.
+     */
+    public boolean isVirtualCodeWin() {
+        return virtualKeyCode == VK_LWIN || virtualKeyCode == VK_RWIN;
+    }
+
     /**
      * @return true if the menu/shift/control/win key pressed is an extended key.
      */
@@ -329,17 +361,25 @@ public class GlobalKeyEvent extends EventObject {
      * @return text
      */
     public String toSimpleKey() {
+        return toSimpleKey(NO_TRACE);
+    }
+
+    /**
+     * Order: ctrl alt shift win
+     * @return text
+     */
+    public String toSimpleKey(GlobalKeyTrace trace) {
         StringBuilder builder = new StringBuilder();
-        if(isControlPressed() && (virtualKeyCode!=VK_CONTROL && virtualKeyCode!=VK_LCONTROL && virtualKeyCode!=VK_RCONTROL)) {
+        if((isControlPressed() || trace.isCtrl()) && !isVirtualCodeControl()) {
             builder.append("Ctrl+");
         }
-        if(isMenuPressed() && (virtualKeyCode!=VK_MENU && virtualKeyCode!=VK_LMENU && virtualKeyCode!=VK_RMENU)) {
+        if((isMenuPressed() || trace.isMenu()) && !isVirtualCodeMenu()) {
             builder.append("Alt+");
         }
-        if(isShiftPressed() && (virtualKeyCode!=VK_SHIFT && virtualKeyCode!=VK_LSHIFT && virtualKeyCode!=VK_RSHIFT)) {
+        if((isShiftPressed() || trace.isShift()) && !isVirtualCodeMenu()) {
             builder.append("Shift+");
         }
-        if(isWinPressed() && (virtualKeyCode!=VK_LWIN && virtualKeyCode!=VK_RWIN)) {
+        if((isWinPressed() || trace.isWin()) && !isVirtualCodeWin()) {
             builder.append("Win+");
         }
         builder.append(GlobalKeyMapper.toSimpleKey(this));
