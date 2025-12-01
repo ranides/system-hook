@@ -16,7 +16,6 @@ public class GlobalKeyTrace {
     }
 
     public void updatePressHistory(GlobalKeyEvent event) {
-        System.out.println(">>> update");
         if(event.isVirtualCodeControl()) {
             timeCtrl = Instant.now();
         }
@@ -24,7 +23,6 @@ public class GlobalKeyTrace {
             timeShift = Instant.now();
         }
         if(event.isVirtualCodeMenu()) {
-            System.out.println(">>> voila");
             timeMenu = Instant.now();
         }
         if(event.isVirtualCodeWin()) {
