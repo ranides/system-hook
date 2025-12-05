@@ -286,7 +286,12 @@ public class GlobalKeyEvent extends EventObject {
         return pressed.contains(VK_LWIN) || pressed.contains(VK_RWIN);
     }
 
-    //
+    /**
+     * @return true if the menu key (alt) is pressed on the keyboard.
+     */
+    public boolean isVirtualCodeExtended() {
+        return isVirtualCodeControl() || isVirtualCodeMenu() || isVirtualCodeShift() || isVirtualCodeWin();
+    }
 
     /**
      * @return true if the menu key (alt) is pressed on the keyboard.
